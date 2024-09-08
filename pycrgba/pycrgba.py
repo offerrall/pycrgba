@@ -19,21 +19,21 @@ def fill_image_rgba_avx2(image_data: Image, width: int, height: int, r: int, g: 
     """Fills an image with a solid RGBA color using AVX2."""
     _ffi.lib.fill_image_rgba_avx2(image_data, width, height, r, g, b, a)
 
-def blend_coords(background: Image, overlay: Image, bg_width: int, bg_height: int, ov_width: int, ov_height: int, start_x: int, start_y: int):
+def blend(background: Image, overlay: Image, bg_width: int, bg_height: int, ov_width: int, ov_height: int, start_x: int, start_y: int):
     """Blends an image on top of another image with coordinates."""
-    _ffi.lib.blend_coords(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y)
+    _ffi.lib.blend(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y)
 
 def blend_avx2(background: Image, overlay: Image, bg_width: int, bg_height: int, ov_width: int, ov_height: int, start_x: int, start_y: int):
     """Blends an image on top of another image with coordinates using AVX2."""
     _ffi.lib.blend_avx2(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y)
 
-def blit_image(dest_image: Image, dest_width: int, dest_height: int, src_image: Image, src_width: int, src_height: int, start_x: int, start_y: int):
+def blit(dest_image: Image, dest_width: int, dest_height: int, src_image: Image, src_width: int, src_height: int, start_x: int, start_y: int):
     """Blits an image to another image with different sizes."""
-    _ffi.lib.blit_image(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
+    _ffi.lib.blit(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
 
-def blit_image_avx2(dest_image: Image, dest_width: int, dest_height: int, src_image: Image, src_width: int, src_height: int, start_x: int, start_y: int):
+def blit_avx2(dest_image: Image, dest_width: int, dest_height: int, src_image: Image, src_width: int, src_height: int, start_x: int, start_y: int):
     """Blits an image to another image with different sizes using AVX2."""
-    _ffi.lib.blit_image_avx2(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
+    _ffi.lib.blit_avx2(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
 
 def nearest_neighbor_resize(src: Image, dst: Image, src_width: int, src_height: int, dst_width: int, dst_height: int):
     """Resizes an image using nearest neighbor interpolation."""
