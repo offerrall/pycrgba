@@ -310,7 +310,6 @@ void blit_image_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_hei
 
 void nearest_neighbor_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
     if (src == NULL || dst == NULL) {
-        printf("Source or destination image is NULL\n");
         return;
     }
 
@@ -333,7 +332,6 @@ void nearest_neighbor_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uin
 
 void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
     if (src == NULL || dst == NULL) {
-        printf("Source or destination image is NULL\n");
         return;
     }
 
