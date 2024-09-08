@@ -1,6 +1,7 @@
 from cffi import FFI
 import shutil
 from os import remove, listdir
+import platform
 
 ffibuilder = FFI()
 
@@ -18,6 +19,11 @@ ffibuilder.cdef("""
     void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height);
 """)
 
+if platform.system() == "Windows":
+    extra_compile_args = ["/O2"]
+else:
+    extra_compile_args = ["-O3", "-march=native"]
+
 ffibuilder.set_source(
     "pycrgba_cffi",
     """
@@ -25,10 +31,10 @@ ffibuilder.set_source(
     """,
     sources=["./c_src/basic_image_lib.c"],
     include_dirs=["./c_src"],
+    extra_compile_args=extra_compile_args,
 )
 
 if __name__ == "__main__":
-
     list_files = listdir(".")
     for file in list_files:
         if file.endswith(".pyc") or file.endswith(".pyo") or file.endswith(".pyd"):
