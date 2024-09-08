@@ -6,18 +6,24 @@
 #include <malloc.h>
 
 
+#define ALIGNMENT 32
+
 uint8_t* create_image_rgba(uint32_t width, uint32_t height) {
+    size_t size = width * height * 4;
     uint8_t* image_data;
+
     #ifdef _WIN32
-    image_data = (uint8_t*)_aligned_malloc(width * height * 4, 32);
+    image_data = (uint8_t*)_aligned_malloc(size, ALIGNMENT);
     #else
-    posix_memalign((void**)&image_data, 32, width * height * 4);
-    #endif
-    if (image_data == NULL) {
-        printf("Failed to allocate memory for image data\n");
-        return NULL;
+    #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+    image_data = aligned_alloc(ALIGNMENT, (size + ALIGNMENT - 1) & ~(ALIGNMENT - 1));
+    #else
+    if (posix_memalign((void**)&image_data, ALIGNMENT, size) != 0) {
+        image_data = NULL;
     }
-    memset(image_data, 0, width * height * 4);
+    #endif
+    #endif
+
     return image_data;
 }
 
