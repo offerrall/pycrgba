@@ -228,75 +228,96 @@ void overlay_image_with_coords_avx2(uint8_t* background, uint8_t* overlay, uint3
 
 
 
-void copy_image_diff_size_no_alpha_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
+
+void copy_image_diff_size_no_alpha(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
                                    uint8_t* src_image, uint32_t src_width, uint32_t src_height,
                                    int start_x, int start_y) {
-    if (dest_image == NULL || src_image == NULL) {
-        printf("Source or destination image data is NULL\n");
+    if (dest_image == NULL || src_image == NULL) return;
+
+    // Ruta rápida para copia exacta
+    if (dest_width == src_width && dest_height == src_height && start_x == 0 && start_y == 0) {
+        memcpy(dest_image, src_image, dest_width * dest_height * 4);
         return;
     }
 
-    int copy_start_x = start_x < 0 ? 0 : start_x;
-    int copy_start_y = start_y < 0 ? 0 : start_y;
+    int copy_start_x = (start_x < 0) ? 0 : start_x;
+    int copy_start_y = (start_y < 0) ? 0 : start_y;
+    int copy_end_x = (start_x + src_width > dest_width) ? dest_width : (start_x + src_width);
+    int copy_end_y = (start_y + src_height > dest_height) ? dest_height : (start_y + src_height);
 
-    int copy_end_x = (start_x + src_width) > dest_width ? dest_width : (start_x + src_width);
-    int copy_end_y = (start_y + src_height) > dest_height ? dest_height : (start_y + src_height);
-
-    if (copy_start_x >= copy_end_x || copy_start_y >= copy_end_y) {
-        return;
-    }
+    if (copy_start_x >= copy_end_x || copy_start_y >= copy_end_y) return;
 
     uint32_t copy_width = copy_end_x - copy_start_x;
     uint32_t copy_height = copy_end_y - copy_start_y;
-    uint32_t avx2_blocks = copy_width / 8;
-    uint32_t remainder = copy_width % 8;
+    uint32_t src_offset_x = (start_x < 0) ? -start_x : 0;
+    uint32_t src_offset_y = (start_y < 0) ? -start_y : 0;
 
+    uint32_t dest_stride = dest_width * 4;
+    uint32_t src_stride = src_width * 4;
+    uint32_t copy_stride = copy_width * 4;
+
+    uint8_t* dest_ptr = dest_image + (copy_start_y * dest_width + copy_start_x) * 4;
+    uint8_t* src_ptr = src_image + (src_offset_y * src_width + src_offset_x) * 4;
 
     for (uint32_t y = 0; y < copy_height; y++) {
-        uint32_t dest_index = ((copy_start_y + y) * dest_width + copy_start_x) * 4;
-        uint32_t src_index = ((start_y < 0 ? y - start_y : y) * src_width + (start_x < 0 ? -start_x : 0)) * 4;
+        memcpy(dest_ptr, src_ptr, copy_stride);
+        dest_ptr += dest_stride;
+        src_ptr += src_stride;
+    }
+}
 
-        for (uint32_t x = 0; x < avx2_blocks; x++) {
-            __m256i pixel = _mm256_loadu_si256((__m256i*)&src_image[src_index + x * 32]);
-            _mm256_storeu_si256((__m256i*)&dest_image[dest_index + x * 32], pixel);
+void copy_image_diff_size_no_alpha_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
+                                        uint8_t* src_image, uint32_t src_width, uint32_t src_height,
+                                        int start_x, int start_y) {
+    if (dest_image == NULL || src_image == NULL) return;
+
+    // Ruta rápida para copia exacta
+    if (dest_width == src_width && dest_height == src_height && start_x == 0 && start_y == 0) {
+        uint32_t total_pixels = dest_width * dest_height;
+        uint32_t avx2_blocks = total_pixels / 8;
+        uint32_t remainder = total_pixels % 8;
+
+        for (uint32_t i = 0; i < avx2_blocks; i++) {
+            __m256i pixels = _mm256_loadu_si256((__m256i*)&src_image[i * 32]);
+            _mm256_storeu_si256((__m256i*)&dest_image[i * 32], pixels);
         }
 
         if (remainder > 0) {
-            memcpy(&dest_image[dest_index + avx2_blocks * 32], &src_image[src_index + avx2_blocks * 32], remainder * 4);
+            memcpy(&dest_image[avx2_blocks * 32], &src_image[avx2_blocks * 32], remainder * 4);
         }
-    }
-}
-
-void copy_image_diff_size_no_alpha(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
-                                           uint8_t* src_image, uint32_t src_width, uint32_t src_height,
-                                           int start_x, int start_y) {
-    if (dest_image == NULL || src_image == NULL) {
-        printf("Source or destination image data is NULL\n");
         return;
     }
 
-    int copy_start_x = start_x < 0 ? 0 : start_x;
-    int copy_start_y = start_y < 0 ? 0 : start_y;
+    int copy_start_x = (start_x < 0) ? 0 : start_x;
+    int copy_start_y = (start_y < 0) ? 0 : start_y;
+    int copy_end_x = (start_x + src_width > dest_width) ? dest_width : (start_x + src_width);
+    int copy_end_y = (start_y + src_height > dest_height) ? dest_height : (start_y + src_height);
 
-    int copy_end_x = (start_x + src_width) > dest_width ? dest_width : (start_x + src_width);
-    int copy_end_y = (start_y + src_height) > dest_height ? dest_height : (start_y + src_height);
-
-    if (copy_start_x >= copy_end_x || copy_start_y >= copy_end_y) {
-        return;
-    }
+    if (copy_start_x >= copy_end_x || copy_start_y >= copy_end_y) return;
 
     uint32_t copy_width = copy_end_x - copy_start_x;
     uint32_t copy_height = copy_end_y - copy_start_y;
+    uint32_t src_offset_x = (start_x < 0) ? -start_x : 0;
+    uint32_t src_offset_y = (start_y < 0) ? -start_y : 0;
+
+    uint32_t avx2_blocks = copy_width / 8;
+    uint32_t remainder = copy_width % 8;
 
     for (uint32_t y = 0; y < copy_height; y++) {
-        uint32_t dest_index = ((copy_start_y + y) * dest_width + copy_start_x) * 4;
-        uint32_t src_index = ((start_y < 0 ? y - start_y : y) * src_width + (start_x < 0 ? -start_x : 0)) * 4;
+        uint8_t* dest_row = dest_image + ((copy_start_y + y) * dest_width + copy_start_x) * 4;
+        uint8_t* src_row = src_image + ((src_offset_y + y) * src_width + src_offset_x) * 4;
 
-        for (uint32_t x = 0; x < copy_width; x++) {
-            memcpy(&dest_image[dest_index + x * 4], &src_image[src_index + x * 4], 4);
+        for (uint32_t x = 0; x < avx2_blocks; x++) {
+            __m256i pixels = _mm256_loadu_si256((__m256i*)(src_row + x * 32));
+            _mm256_storeu_si256((__m256i*)(dest_row + x * 32), pixels);
+        }
+
+        if (remainder > 0) {
+            memcpy(dest_row + avx2_blocks * 32, src_row + avx2_blocks * 32, remainder * 4);
         }
     }
 }
+
 
 
 void nearest_neighbor_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
