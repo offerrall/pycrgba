@@ -129,9 +129,8 @@ void blend(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg
     }
 }
 
-
 void blend_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
-                               uint32_t ov_width, uint32_t ov_height, int start_x, int start_y) {
+                uint32_t ov_width, uint32_t ov_height, int start_x, int start_y) {
     if (background == NULL || overlay == NULL) {
         printf("Background or overlay image is NULL\n");
         return;
@@ -157,28 +156,38 @@ void blend_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32
             __m256i bg_pixels = _mm256_loadu_si256((__m256i*)&background[bg_index]);
             __m256i ov_pixels = _mm256_loadu_si256((__m256i*)&overlay[overlay_index]);
 
-            __m256i alpha = _mm256_srli_epi32(ov_pixels, 24);
+            __m256i alpha = _mm256_and_si256(_mm256_srli_epi32(ov_pixels, 24), _mm256_set1_epi32(0xFF));
             __m256i inv_alpha = _mm256_sub_epi32(_mm256_set1_epi32(255), alpha);
 
-            __m256i bg_rb = _mm256_and_si256(bg_pixels, _mm256_set1_epi32(0x00FF00FF));
-            __m256i ov_rb = _mm256_and_si256(ov_pixels, _mm256_set1_epi32(0x00FF00FF));
-            __m256i blended_rb = _mm256_add_epi32(_mm256_mullo_epi16(ov_rb, alpha), _mm256_mullo_epi16(bg_rb, inv_alpha));
-            blended_rb = _mm256_srli_epi32(blended_rb, 8);
+            __m256i bg_r = _mm256_and_si256(bg_pixels, _mm256_set1_epi32(0xFF));
+            __m256i bg_g = _mm256_and_si256(_mm256_srli_epi32(bg_pixels, 8), _mm256_set1_epi32(0xFF));
+            __m256i bg_b = _mm256_and_si256(_mm256_srli_epi32(bg_pixels, 16), _mm256_set1_epi32(0xFF));
+            __m256i bg_a = _mm256_and_si256(_mm256_srli_epi32(bg_pixels, 24), _mm256_set1_epi32(0xFF));
 
-            __m256i bg_ga = _mm256_srli_epi32(_mm256_and_si256(bg_pixels, _mm256_set1_epi32(0xFF00FF00)), 8);
-            __m256i ov_ga = _mm256_srli_epi32(_mm256_and_si256(ov_pixels, _mm256_set1_epi32(0xFF00FF00)), 8);
-            __m256i blended_ga = _mm256_add_epi32(_mm256_mullo_epi16(ov_ga, alpha), _mm256_mullo_epi16(bg_ga, inv_alpha));
-            blended_ga = _mm256_srli_epi32(blended_ga, 8);
+            __m256i ov_r = _mm256_and_si256(ov_pixels, _mm256_set1_epi32(0xFF));
+            __m256i ov_g = _mm256_and_si256(_mm256_srli_epi32(ov_pixels, 8), _mm256_set1_epi32(0xFF));
+            __m256i ov_b = _mm256_and_si256(_mm256_srli_epi32(ov_pixels, 16), _mm256_set1_epi32(0xFF));
 
-            __m256i result_pixels = _mm256_or_si256(_mm256_and_si256(blended_rb, _mm256_set1_epi32(0x00FF00FF)),
-                                                    _mm256_slli_epi32(blended_ga, 8));
+            __m256i r = _mm256_srli_epi32(_mm256_add_epi32(_mm256_mullo_epi32(ov_r, alpha), _mm256_mullo_epi32(bg_r, inv_alpha)), 8);
+            __m256i g = _mm256_srli_epi32(_mm256_add_epi32(_mm256_mullo_epi32(ov_g, alpha), _mm256_mullo_epi32(bg_g, inv_alpha)), 8);
+            __m256i b = _mm256_srli_epi32(_mm256_add_epi32(_mm256_mullo_epi32(ov_b, alpha), _mm256_mullo_epi32(bg_b, inv_alpha)), 8);
+            __m256i a = _mm256_add_epi32(alpha, _mm256_srli_epi32(_mm256_mullo_epi32(bg_a, inv_alpha), 8));
 
-            _mm256_storeu_si256((__m256i*)&background[bg_index], result_pixels);
+            __m256i result = _mm256_or_si256(
+                _mm256_or_si256(
+                    _mm256_or_si256(r, _mm256_slli_epi32(g, 8)),
+                    _mm256_slli_epi32(b, 16)
+                ),
+                _mm256_slli_epi32(a, 24)
+            );
+
+            _mm256_storeu_si256((__m256i*)&background[bg_index], result);
 
             bg_index += 32;
             overlay_index += 32;
         }
 
+        // Handle remaining pixels
         for (uint32_t x = ov_width - (ov_width % 8); x < ov_width; x++) {
             int bg_x = start_x + x;
             if (bg_x < 0 || bg_x >= bg_width) {
