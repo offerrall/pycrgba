@@ -1,7 +1,8 @@
 import time
 from pycrgba import create_image_rgba, free_image_rgba
 
-def test_create_free(width, height, iterations=1000):
+def test_create_free(iterations=1000):
+    width, height = 1920, 1080
     total_create_time = 0
     total_free_time = 0
 
@@ -25,15 +26,6 @@ def test_create_free(width, height, iterations=1000):
     print(f"Resolution: {width}x{height}")
     print(f"create_image_rgba: {create_fps:.2f} FPS")
     print(f"free_image_rgba: {free_fps:.2f} FPS")
-    print()
 
 if __name__ == "__main__":
-    resolutions = [
-        (640, 480),    # VGA
-        (1280, 720),   # HD
-        (1920, 1080),  # Full HD
-        (3840, 2160),  # 4K
-    ]
-
-    for width, height in resolutions:
-        test_create_free(width, height)
+    test_create_free()

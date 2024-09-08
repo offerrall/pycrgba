@@ -225,18 +225,10 @@ void blend_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32
     }
 }
 
-
-
-
 void blit(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
                                    uint8_t* src_image, uint32_t src_width, uint32_t src_height,
                                    int start_x, int start_y) {
     if (dest_image == NULL || src_image == NULL) return;
-
-    if (dest_width == src_width && dest_height == src_height && start_x == 0 && start_y == 0) {
-        memcpy(dest_image, src_image, dest_width * dest_height * 4);
-        return;
-    }
 
     int copy_start_x = (start_x < 0) ? 0 : start_x;
     int copy_start_y = (start_y < 0) ? 0 : start_y;
@@ -269,22 +261,6 @@ void blit_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
                                         int start_x, int start_y) {
     if (dest_image == NULL || src_image == NULL) return;
 
-    if (dest_width == src_width && dest_height == src_height && start_x == 0 && start_y == 0) {
-        uint32_t total_pixels = dest_width * dest_height;
-        uint32_t avx2_blocks = total_pixels / 8;
-        uint32_t remainder = total_pixels % 8;
-
-        for (uint32_t i = 0; i < avx2_blocks; i++) {
-            __m256i pixels = _mm256_loadu_si256((__m256i*)&src_image[i * 32]);
-            _mm256_storeu_si256((__m256i*)&dest_image[i * 32], pixels);
-        }
-
-        if (remainder > 0) {
-            memcpy(&dest_image[avx2_blocks * 32], &src_image[avx2_blocks * 32], remainder * 4);
-        }
-        return;
-    }
-
     int copy_start_x = (start_x < 0) ? 0 : start_x;
     int copy_start_y = (start_y < 0) ? 0 : start_y;
     int copy_end_x = (start_x + src_width > dest_width) ? dest_width : (start_x + src_width);
@@ -315,8 +291,6 @@ void blit_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
     }
 }
 
-
-
 void nearest_neighbor_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
     if (src == NULL || dst == NULL) {
         return;
@@ -337,7 +311,6 @@ void nearest_neighbor_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uin
         }
     }
 }
-
 
 void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
     if (src == NULL || dst == NULL) {
@@ -368,4 +341,3 @@ void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width
         }
     }
 }
-
