@@ -35,16 +35,6 @@ void free_image_rgba(uint8_t* image_data) {
     #endif
 }
 
-void copy_image(uint8_t* dest_image, uint8_t* src_image, uint32_t width, uint32_t height) {
-    if (dest_image == NULL || src_image == NULL) {
-        printf("Source or destination image data is NULL\n");
-        return;
-    }
-
-    uint32_t image_size = width * height * 4;
-    memcpy(dest_image, src_image, image_size);
-}
-
 void fill_image_rgba(uint8_t* image_data, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     if (image_data == NULL) {
         printf("Image data is NULL\n");
@@ -86,7 +76,7 @@ void fill_image_rgba_avx2(uint8_t* image_data, uint32_t width, uint32_t height, 
 }
 
 
-void overlay_image_with_coords(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
+void blend_coords(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
                                        uint32_t ov_width, uint32_t ov_height, int start_x, int start_y) {
     if (background == NULL || overlay == NULL) {
         printf("Background or overlay image is NULL\n");
@@ -140,7 +130,7 @@ void overlay_image_with_coords(uint8_t* background, uint8_t* overlay, uint32_t b
 }
 
 
-void overlay_image_with_coords_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
+void blend_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
                                uint32_t ov_width, uint32_t ov_height, int start_x, int start_y) {
     if (background == NULL || overlay == NULL) {
         printf("Background or overlay image is NULL\n");
@@ -229,12 +219,11 @@ void overlay_image_with_coords_avx2(uint8_t* background, uint8_t* overlay, uint3
 
 
 
-void copy_image_diff_size_no_alpha(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
+void blit_image(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
                                    uint8_t* src_image, uint32_t src_width, uint32_t src_height,
                                    int start_x, int start_y) {
     if (dest_image == NULL || src_image == NULL) return;
 
-    // Ruta rápida para copia exacta
     if (dest_width == src_width && dest_height == src_height && start_x == 0 && start_y == 0) {
         memcpy(dest_image, src_image, dest_width * dest_height * 4);
         return;
@@ -266,12 +255,11 @@ void copy_image_diff_size_no_alpha(uint8_t* dest_image, uint32_t dest_width, uin
     }
 }
 
-void copy_image_diff_size_no_alpha_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
+void blit_image_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
                                         uint8_t* src_image, uint32_t src_width, uint32_t src_height,
                                         int start_x, int start_y) {
     if (dest_image == NULL || src_image == NULL) return;
 
-    // Ruta rápida para copia exacta
     if (dest_width == src_width && dest_height == src_height && start_x == 0 && start_y == 0) {
         uint32_t total_pixels = dest_width * dest_height;
         uint32_t avx2_blocks = total_pixels / 8;

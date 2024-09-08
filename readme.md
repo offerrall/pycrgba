@@ -6,9 +6,8 @@ pycrgba is a personal learning project that provides Python bindings for basic i
 
 ## Features
 
-- Basic image operations (create, copy, fill)
+- Basic image operations (create, copy, fill, resize, free)
 - Image overlay with alpha blending
-- Nearest neighbor resizing
 - AVX2 acceleration for supported operations
 
 ## Installation
