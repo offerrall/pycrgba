@@ -226,21 +226,21 @@ void blend_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32
 }
 
 void blit(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
-                                   uint8_t* src_image, uint32_t src_width, uint32_t src_height,
-                                   int start_x, int start_y) {
+          uint8_t* src_image, uint32_t src_width, uint32_t src_height,
+          int32_t start_x, int32_t start_y) {
     if (dest_image == NULL || src_image == NULL) return;
 
-    int copy_start_x = (start_x < 0) ? 0 : start_x;
-    int copy_start_y = (start_y < 0) ? 0 : start_y;
-    int copy_end_x = (start_x + src_width > dest_width) ? dest_width : (start_x + src_width);
-    int copy_end_y = (start_y + src_height > dest_height) ? dest_height : (start_y + src_height);
+    int32_t copy_start_x = (start_x < 0) ? 0 : start_x;
+    int32_t copy_start_y = (start_y < 0) ? 0 : start_y;
+    int32_t copy_end_x = (start_x + (int32_t)src_width > (int32_t)dest_width) ? dest_width : (start_x + src_width);
+    int32_t copy_end_y = (start_y + (int32_t)src_height > (int32_t)dest_height) ? dest_height : (start_y + src_height);
 
     if (copy_start_x >= copy_end_x || copy_start_y >= copy_end_y) return;
 
     uint32_t copy_width = copy_end_x - copy_start_x;
     uint32_t copy_height = copy_end_y - copy_start_y;
-    uint32_t src_offset_x = (start_x < 0) ? -start_x : 0;
-    uint32_t src_offset_y = (start_y < 0) ? -start_y : 0;
+    int32_t src_offset_x = (start_x < 0) ? -start_x : 0;
+    int32_t src_offset_y = (start_y < 0) ? -start_y : 0;
 
     uint32_t dest_stride = dest_width * 4;
     uint32_t src_stride = src_width * 4;
@@ -257,21 +257,21 @@ void blit(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
 }
 
 void blit_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
-                                        uint8_t* src_image, uint32_t src_width, uint32_t src_height,
-                                        int start_x, int start_y) {
+               uint8_t* src_image, uint32_t src_width, uint32_t src_height,
+               int32_t start_x, int32_t start_y) {
     if (dest_image == NULL || src_image == NULL) return;
 
-    int copy_start_x = (start_x < 0) ? 0 : start_x;
-    int copy_start_y = (start_y < 0) ? 0 : start_y;
-    int copy_end_x = (start_x + src_width > dest_width) ? dest_width : (start_x + src_width);
-    int copy_end_y = (start_y + src_height > dest_height) ? dest_height : (start_y + src_height);
+    int32_t copy_start_x = (start_x < 0) ? 0 : start_x;
+    int32_t copy_start_y = (start_y < 0) ? 0 : start_y;
+    int32_t copy_end_x = (start_x + (int32_t)src_width > (int32_t)dest_width) ? dest_width : (start_x + src_width);
+    int32_t copy_end_y = (start_y + (int32_t)src_height > (int32_t)dest_height) ? dest_height : (start_y + src_height);
 
     if (copy_start_x >= copy_end_x || copy_start_y >= copy_end_y) return;
 
     uint32_t copy_width = copy_end_x - copy_start_x;
     uint32_t copy_height = copy_end_y - copy_start_y;
-    uint32_t src_offset_x = (start_x < 0) ? -start_x : 0;
-    uint32_t src_offset_y = (start_y < 0) ? -start_y : 0;
+    int32_t src_offset_x = (start_x < 0) ? -start_x : 0;
+    int32_t src_offset_y = (start_y < 0) ? -start_y : 0;
 
     uint32_t avx2_blocks = copy_width / 8;
     uint32_t remainder = copy_width % 8;
