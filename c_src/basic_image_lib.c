@@ -187,7 +187,6 @@ void blend_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32
             overlay_index += 32;
         }
 
-        // Handle remaining pixels
         for (uint32_t x = ov_width - (ov_width % 8); x < ov_width; x++) {
             int bg_x = start_x + x;
             if (bg_x < 0 || bg_x >= bg_width) {
