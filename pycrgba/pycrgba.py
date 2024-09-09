@@ -31,6 +31,10 @@ def blit(dest_image: Image, dest_width: int, dest_height: int, src_image: Image,
     """Blits an image to another image with different sizes."""
     _ffi.lib.blit(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
 
+def blit_same_size(src: Image, dst: Image, width: int, height: int, channels: int):
+    """Blits an image of the same size."""
+    _ffi.lib.blit_same_size(src, dst, width, height, channels)
+
 def blit_avx2(dest_image: Image, dest_width: int, dest_height: int, src_image: Image, src_width: int, src_height: int, start_x: int, start_y: int):
     """Blits an image to another image with different sizes using AVX2."""
     _ffi.lib.blit_avx2(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
@@ -42,11 +46,3 @@ def nearest_neighbor_resize(src: Image, dst: Image, src_width: int, src_height: 
 def nearest_neighbor_resize_avx2(src: Image, dst: Image, src_width: int, src_height: int, dst_width: int, dst_height: int):
     """Resizes an image using nearest neighbor interpolation with AVX2."""
     _ffi.lib.nearest_neighbor_resize_avx2(src, dst, src_width, src_height, dst_width, dst_height)
-
-def bilinear_resize(src: Image, dst: Image, src_width: int, src_height: int, dst_width: int, dst_height: int):
-    """Resizes an image using bilinear interpolation."""
-    _ffi.lib.bilinear_resize(src, dst, src_width, src_height, dst_width, dst_height)
-
-def bilinear_resize_avx2(src: Image, dst: Image, src_width: int, src_height: int, dst_width: int, dst_height: int):
-    """Resizes an image using bilinear interpolation with AVX2 optimization."""
-    _ffi.lib.bilinear_resize_avx2(src, dst, src_width, src_height, dst_width, dst_height)
