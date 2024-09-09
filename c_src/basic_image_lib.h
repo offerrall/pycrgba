@@ -5,8 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <immintrin.h>
+
+#ifdef _WIN32
 #include <malloc.h>
+#endif
+
+#ifdef __x86_64__
+#include <immintrin.h>
+#endif
 
 #define ALIGNMENT 32
 

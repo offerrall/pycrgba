@@ -2,8 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <immintrin.h>
+
+#ifdef _WIN32
 #include <malloc.h>
+#endif
+
+#ifdef __x86_64__
+#include <immintrin.h>
+#endif
 
 
 #define ALIGNMENT 32
@@ -50,6 +56,7 @@ void fill_image_rgba(uint8_t* image_data, uint32_t width, uint32_t height, uint8
     }
 }
 
+#ifdef __x86_64__
 void fill_image_rgba_avx2(uint8_t* image_data, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     if (image_data == NULL) {
         printf("Image data is NULL\n");
@@ -74,10 +81,14 @@ void fill_image_rgba_avx2(uint8_t* image_data, uint32_t width, uint32_t height, 
         image_data[i * 4 + 3] = a;
     }
 }
-
+#else
+void fill_image_rgba_avx2(uint8_t* image_data, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    fill_image_rgba(image_data, width, height, r, g, b, a);
+}
+#endif
 
 void blend(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
-            uint32_t ov_width, uint32_t ov_height, int start_x, int start_y) {
+            uint32_t ov_width, uint32_t ov_height, int32_t start_x, int32_t start_y) {
     if (background == NULL || overlay == NULL) {
         printf("Background or overlay image is NULL\n");
         return;
@@ -129,8 +140,9 @@ void blend(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg
     }
 }
 
+#ifdef __x86_64__
 void blend_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
-                uint32_t ov_width, uint32_t ov_height, int start_x, int start_y) {
+                uint32_t ov_width, uint32_t ov_height, int32_t start_x, int32_t start_y) {
     if (background == NULL || overlay == NULL) {
         printf("Background or overlay image is NULL\n");
         return;
@@ -223,6 +235,12 @@ void blend_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32
         }
     }
 }
+#else
+void blend_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
+                uint32_t ov_width, uint32_t ov_height, int32_t start_x, int32_t start_y) {
+    blend(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y);
+}
+#endif
 
 void blit(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
           uint8_t* src_image, uint32_t src_width, uint32_t src_height,
@@ -255,6 +273,7 @@ void blit(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
     }
 }
 
+#ifdef __x86_64__
 void blit_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
                uint8_t* src_image, uint32_t src_width, uint32_t src_height,
                int32_t start_x, int32_t start_y) {
@@ -289,6 +308,13 @@ void blit_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
         }
     }
 }
+#else
+void blit_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
+               uint8_t* src_image, uint32_t src_width, uint32_t src_height,
+               int32_t start_x, int32_t start_y) {
+    blit(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y);
+}
+#endif
 
 void blit_same_size(uint8_t* src, uint8_t* dst, uint32_t width, uint32_t height, uint32_t channels) {
     size_t total_bytes = width * height * channels;
@@ -316,6 +342,7 @@ void nearest_neighbor_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uin
     }
 }
 
+#ifdef __x86_64__
 void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
     if (src == NULL || dst == NULL) {
         return;
@@ -345,3 +372,8 @@ void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width
         }
     }
 }
+#else
+void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
+    nearest_neighbor_resize(src, dst, src_width, src_height, dst_width, dst_height);
+}
+#endif

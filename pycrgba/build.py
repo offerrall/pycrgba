@@ -21,6 +21,8 @@ ffibuilder.cdef("""
 
 if platform.system() == "Windows":
     extra_compile_args = ["/O2"]
+elif platform.machine() == "x86_64":
+    extra_compile_args = ["-O3", "-march=native", "-mavx2"]
 else:
     extra_compile_args = ["-O3", "-march=native"]
 
