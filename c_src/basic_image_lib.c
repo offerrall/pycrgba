@@ -340,3 +340,78 @@ void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width
         }
     }
 }
+
+void bilinear_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
+    float x_ratio = (float)(src_width - 1) / dst_width;
+    float y_ratio = (float)(src_height - 1) / dst_height;
+    uint32_t channels = 4;
+
+    for (uint32_t y = 0; y < dst_height; y++) {
+        float src_y = y * y_ratio;
+        uint32_t y_floor = (uint32_t)src_y;
+        uint32_t y_ceil = (y_floor == src_height - 1) ? y_floor : y_floor + 1;
+        float y_diff = src_y - y_floor;
+
+        for (uint32_t x = 0; x < dst_width; x++) {
+            float src_x = x * x_ratio;
+            uint32_t x_floor = (uint32_t)src_x;
+            uint32_t x_ceil = (x_floor == src_width - 1) ? x_floor : x_floor + 1;
+            float x_diff = src_x - x_floor;
+
+            for (uint32_t c = 0; c < channels; c++) {
+                float top = src[((y_floor * src_width + x_floor) * channels) + c] * (1 - x_diff) +
+                            src[((y_floor * src_width + x_ceil) * channels) + c] * x_diff;
+                float bottom = src[((y_ceil * src_width + x_floor) * channels) + c] * (1 - x_diff) +
+                               src[((y_ceil * src_width + x_ceil) * channels) + c] * x_diff;
+                dst[((y * dst_width + x) * channels) + c] = (uint8_t)(top * (1 - y_diff) + bottom * y_diff);
+            }
+        }
+    }
+}
+
+void bilinear_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
+    float x_ratio = (float)(src_width - 1) / dst_width;
+    float y_ratio = (float)(src_height - 1) / dst_height;
+    uint32_t channels = 4;
+
+    __m256 x_ratio_vec = _mm256_set1_ps(x_ratio);
+    __m256 y_ratio_vec = _mm256_set1_ps(y_ratio);
+    __m256 one_vec = _mm256_set1_ps(1.0f);
+
+    for (uint32_t y = 0; y < dst_height; y++) {
+        __m256 src_y_vec = _mm256_set1_ps(y * y_ratio);
+        __m256i y_floor_vec = _mm256_cvttps_epi32(src_y_vec);
+        __m256 y_diff_vec = _mm256_sub_ps(src_y_vec, _mm256_cvtepi32_ps(y_floor_vec));
+        __m256 one_minus_y_diff_vec = _mm256_sub_ps(one_vec, y_diff_vec);
+
+        for (uint32_t x = 0; x < dst_width; x += 8) {
+            __m256 src_x_vec = _mm256_add_ps(_mm256_mul_ps(_mm256_set_ps(7, 6, 5, 4, 3, 2, 1, 0), x_ratio_vec), _mm256_set1_ps(x * x_ratio));
+            __m256i x_floor_vec = _mm256_cvttps_epi32(src_x_vec);
+            __m256 x_diff_vec = _mm256_sub_ps(src_x_vec, _mm256_cvtepi32_ps(x_floor_vec));
+            __m256 one_minus_x_diff_vec = _mm256_sub_ps(one_vec, x_diff_vec);
+
+            for (uint32_t c = 0; c < channels; c++) {
+                __m256 top_left, top_right, bottom_left, bottom_right;
+
+                #pragma unroll(8)
+                for (int i = 0; i < 8; i++) {
+                    uint32_t x_floor = x_floor_vec.m256i_i32[i];
+                    uint32_t y_floor = y_floor_vec.m256i_i32[0];
+
+                    top_left.m256_f32[i] = src[(y_floor * src_width + x_floor) * channels + c];
+                    top_right.m256_f32[i] = src[(y_floor * src_width + x_floor + 1) * channels + c];
+                    bottom_left.m256_f32[i] = src[((y_floor + 1) * src_width + x_floor) * channels + c];
+                    bottom_right.m256_f32[i] = src[((y_floor + 1) * src_width + x_floor + 1) * channels + c];
+                }
+
+                __m256 top = _mm256_add_ps(_mm256_mul_ps(top_left, one_minus_x_diff_vec), _mm256_mul_ps(top_right, x_diff_vec));
+                __m256 bottom = _mm256_add_ps(_mm256_mul_ps(bottom_left, one_minus_x_diff_vec), _mm256_mul_ps(bottom_right, x_diff_vec));
+                __m256 result = _mm256_add_ps(_mm256_mul_ps(top, one_minus_y_diff_vec), _mm256_mul_ps(bottom, y_diff_vec));
+
+                __m256i result_int = _mm256_cvtps_epi32(result);
+                _mm_storeu_si128((__m128i*)&dst[(y * dst_width + x) * channels + c], _mm256_extracti128_si256(result_int, 0));
+                _mm_storeu_si128((__m128i*)&dst[(y * dst_width + x + 4) * channels + c], _mm256_extracti128_si256(result_int, 1));
+            }
+        }
+    }
+}
