@@ -1,5 +1,6 @@
 import pycrgba_cffi as _ffi
 from typing import Any
+import platform
 
 Image = Any
 
@@ -62,3 +63,45 @@ def nearest_neighbor_resize_avx2(src: Image, dst: Image, src_width: int, src_hei
 def nearest_neighbor_resize_neon(src: Image, dst: Image, src_width: int, src_height: int, dst_width: int, dst_height: int):
     """Resizes an image using nearest neighbor interpolation with NEON optimizations."""
     _ffi.lib.nearest_neighbor_resize_neon(src, dst, src_width, src_height, dst_width, dst_height)
+
+def _is_arm():
+    return platform.machine().startswith('arm') or platform.machine().startswith('aarch')
+
+def _is_x86_64():
+    return platform.machine() == 'x86_64' or platform.machine() == 'AMD64'
+
+def auto_fill_image_rgba(image_data: Image, width: int, height: int, r: int, g: int, b: int, a: int):
+    """Automatically selects the best fill_image_rgba function based on hardware."""
+    if _is_arm():
+        fill_image_rgba_neon(image_data, width, height, r, g, b, a)
+    elif _is_x86_64():
+        fill_image_rgba_avx2(image_data, width, height, r, g, b, a)
+    else:
+        fill_image_rgba(image_data, width, height, r, g, b, a)
+
+def auto_blend(background: Image, overlay: Image, bg_width: int, bg_height: int, ov_width: int, ov_height: int, start_x: int, start_y: int):
+    """Automatically selects the best blend function based on hardware."""
+    if _is_arm():
+        blend_neon(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y)
+    elif _is_x86_64():
+        blend_avx2(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y)
+    else:
+        blend(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y)
+
+def auto_blit(dest_image: Image, dest_width: int, dest_height: int, src_image: Image, src_width: int, src_height: int, start_x: int, start_y: int):
+    """Automatically selects the best blit function based on hardware."""
+    if _is_arm():
+        blit_neon(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
+    elif _is_x86_64():
+        blit_avx2(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
+    else:
+        blit(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
+
+def auto_nearest_neighbor_resize(src: Image, dst: Image, src_width: int, src_height: int, dst_width: int, dst_height: int):
+    """Automatically selects the best nearest neighbor resize function based on hardware."""
+    if _is_arm():
+        nearest_neighbor_resize_neon(src, dst, src_width, src_height, dst_width, dst_height)
+    elif _is_x86_64():
+        nearest_neighbor_resize_avx2(src, dst, src_width, src_height, dst_width, dst_height)
+    else:
+        nearest_neighbor_resize(src, dst, src_width, src_height, dst_width, dst_height)
