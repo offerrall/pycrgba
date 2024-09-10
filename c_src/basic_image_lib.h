@@ -10,11 +10,18 @@
 #include <malloc.h>
 #endif
 
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined(_M_X64)
 #include <immintrin.h>
 #endif
 
 #define ALIGNMENT 32
+
+
+#if defined(__AVX2__)
+#define HAS_AVX2 1
+#else
+#define HAS_AVX2 0
+#endif
 
 uint8_t* create_image_rgba(uint32_t width, uint32_t height);
 void free_image_rgba(uint8_t* image_data);

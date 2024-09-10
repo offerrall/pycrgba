@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "*.ino": "cpp",
-        "string.h": "c"
+        "string.h": "c",
+        "immintrin.h": "c"
     }
 }
