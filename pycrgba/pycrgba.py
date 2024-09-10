@@ -19,6 +19,10 @@ def fill_image_rgba_avx2(image_data: Image, width: int, height: int, r: int, g: 
     """Fills an image with a solid RGBA color using AVX2."""
     _ffi.lib.fill_image_rgba_avx2(image_data, width, height, r, g, b, a)
 
+def fill_image_rgba_neon(image_data: Image, width: int, height: int, r: int, g: int, b: int, a: int):
+    """Fills an image with a solid RGBA color using NEON optimizations."""
+    _ffi.lib.fill_image_rgba_neon(image_data, width, height, r, g, b, a)
+
 def blend(background: Image, overlay: Image, bg_width: int, bg_height: int, ov_width: int, ov_height: int, start_x: int, start_y: int):
     """Blends an image on top of another image with coordinates."""
     _ffi.lib.blend(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y)

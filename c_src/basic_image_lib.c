@@ -96,6 +96,36 @@ void fill_image_rgba_avx2(uint8_t* image_data, uint32_t width, uint32_t height, 
 }
 #endif
 
+#if defined(__ARM_NEON)
+void fill_image_rgba_neon(uint8_t* image_data, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    if (image_data == NULL) {
+        printf("Image data is NULL\n");
+        return;
+    }
+
+    uint32_t total_pixels = width * height;
+    uint32_t neon_blocks = total_pixels / 4;
+    uint32_t remainder = total_pixels % 4;
+
+    uint32x4_t rgba = vdupq_n_u32((a << 24) | (b << 16) | (g << 8) | r);
+
+    for (uint32_t i = 0; i < neon_blocks; i++) {
+        vst1q_u32((uint32_t*)&image_data[i * 16], rgba);
+    }
+
+    for (uint32_t i = neon_blocks * 4; i < total_pixels; i++) {
+        image_data[i * 4]     = r;
+        image_data[i * 4 + 1] = g;
+        image_data[i * 4 + 2] = b;
+        image_data[i * 4 + 3] = a;
+    }
+}
+#else
+void fill_image_rgba_neon(uint8_t* image_data, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    fill_image_rgba(image_data, width, height, r, g, b, a);
+}
+#endif
+
 void blend(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
             uint32_t ov_width, uint32_t ov_height, int32_t start_x, int32_t start_y) {
     if (background == NULL || overlay == NULL) {
