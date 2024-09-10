@@ -281,6 +281,110 @@ void blend_avx2(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32
 }
 #endif
 
+#if defined(__ARM_NEON)
+void blend_neon(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
+                uint32_t ov_width, uint32_t ov_height, int32_t start_x, int32_t start_y) {
+    if (background == NULL || overlay == NULL) {
+        printf("Background or overlay image is NULL\n");
+        return;
+    }
+
+    for (uint32_t y = 0; y < ov_height; y++) {
+        int bg_y = start_y + y;
+        if (bg_y < 0 || bg_y >= bg_height) {
+            continue;
+        }
+
+        uint32_t bg_index = (bg_y * bg_width + start_x) * 4;
+        uint32_t overlay_index = y * ov_width * 4;
+
+        for (uint32_t x = 0; x < ov_width - 3; x += 4) {
+            int bg_x = start_x + x;
+            if (bg_x < 0 || bg_x + 3 >= bg_width) {
+                bg_index += 16;
+                overlay_index += 16;
+                continue;
+            }
+
+            uint8x16_t bg_pixels = vld1q_u8(&background[bg_index]);
+            uint8x16_t ov_pixels = vld1q_u8(&overlay[overlay_index]);
+
+            uint16x8_t alpha_high = vmovl_u8(vget_high_u8(ov_pixels));
+            uint16x8_t alpha_low = vmovl_u8(vget_low_u8(ov_pixels));
+            uint16x8_t inv_alpha_high = vsubq_u16(vdupq_n_u16(255), alpha_high);
+            uint16x8_t inv_alpha_low = vsubq_u16(vdupq_n_u16(255), alpha_low);
+
+            uint16x8_t bg_high = vmovl_u8(vget_high_u8(bg_pixels));
+            uint16x8_t bg_low = vmovl_u8(vget_low_u8(bg_pixels));
+            uint16x8_t ov_high = vmovl_u8(vget_high_u8(ov_pixels));
+            uint16x8_t ov_low = vmovl_u8(vget_low_u8(ov_pixels));
+
+            uint16x8_t blended_high = vaddq_u16(
+                vmulq_u16(ov_high, alpha_high),
+                vmulq_u16(bg_high, inv_alpha_high)
+            );
+            uint16x8_t blended_low = vaddq_u16(
+                vmulq_u16(ov_low, alpha_low),
+                vmulq_u16(bg_low, inv_alpha_low)
+            );
+
+            blended_high = vshrq_n_u16(blended_high, 8);
+            blended_low = vshrq_n_u16(blended_low, 8);
+
+            uint8x16_t result = vcombine_u8(vqmovn_u16(blended_low), vqmovn_u16(blended_high));
+
+            vst1q_u8(&background[bg_index], result);
+
+            bg_index += 16;
+            overlay_index += 16;
+        }
+
+        for (uint32_t x = ov_width - (ov_width % 4); x < ov_width; x++) {
+            int bg_x = start_x + x;
+            if (bg_x < 0 || bg_x >= bg_width) {
+                continue;
+            }
+
+            uint32_t bg_pixel_index = (bg_y * bg_width + bg_x) * 4;
+            uint32_t ov_pixel_index = (y * ov_width + x) * 4;
+
+            uint8_t r1 = background[bg_pixel_index];
+            uint8_t g1 = background[bg_pixel_index + 1];
+            uint8_t b1 = background[bg_pixel_index + 2];
+            uint8_t a1 = background[bg_pixel_index + 3];
+
+            uint8_t r2 = overlay[ov_pixel_index];
+            uint8_t g2 = overlay[ov_pixel_index + 1];
+            uint8_t b2 = overlay[ov_pixel_index + 2];
+            uint8_t a2 = overlay[ov_pixel_index + 3];
+
+            if (a2 == 0) {
+                continue;
+            } else if (a2 == 255) {
+                background[bg_pixel_index] = r2;
+                background[bg_pixel_index + 1] = g2;
+                background[bg_pixel_index + 2] = b2;
+                background[bg_pixel_index + 3] = a2;
+            } else {
+                uint32_t inv_alpha = 255 - a2;
+                background[bg_pixel_index]     = (r2 * a2 + r1 * inv_alpha) / 255;
+                background[bg_pixel_index + 1] = (g2 * a2 + g1 * inv_alpha) / 255;
+                background[bg_pixel_index + 2] = (b2 * a2 + b1 * inv_alpha) / 255;
+                background[bg_pixel_index + 3] = a2 + (a1 * inv_alpha) / 255;
+            }
+        }
+    }
+}
+
+#else
+// Fallback to non-NEON version if NEON is not available
+void blend_neon(uint8_t* background, uint8_t* overlay, uint32_t bg_width, uint32_t bg_height,
+                uint32_t ov_width, uint32_t ov_height, int32_t start_x, int32_t start_y) {
+    // Call the original blend function here
+    blend(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y);
+}
+#endif
+
 void blit(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
           uint8_t* src_image, uint32_t src_width, uint32_t src_height,
           int32_t start_x, int32_t start_y) {

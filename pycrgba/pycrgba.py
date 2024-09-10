@@ -31,6 +31,10 @@ def blend_avx2(background: Image, overlay: Image, bg_width: int, bg_height: int,
     """Blends an image on top of another image with coordinates using AVX2."""
     _ffi.lib.blend_avx2(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y)
 
+def blend_neon(background: Image, overlay: Image, bg_width: int, bg_height: int, ov_width: int, ov_height: int, start_x: int, start_y: int):
+    """Blends an image on top of another image with coordinates using NEON optimizations."""
+    _ffi.lib.blend_neon(background, overlay, bg_width, bg_height, ov_width, ov_height, start_x, start_y)
+
 def blit(dest_image: Image, dest_width: int, dest_height: int, src_image: Image, src_width: int, src_height: int, start_x: int, start_y: int):
     """Blits an image to another image with different sizes."""
     _ffi.lib.blit(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
