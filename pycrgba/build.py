@@ -2,6 +2,7 @@ from cffi import FFI
 import shutil
 from os import remove, listdir
 import platform
+from time import sleep
 
 ffibuilder = FFI()
 
@@ -23,13 +24,19 @@ ffibuilder.cdef("""
 """)
 
 if platform.system() == "Windows":
+    print("Windows detected")
     extra_compile_args = ["/O2", "/arch:AVX2"]
 elif platform.machine() == "x86_64":
     extra_compile_args = ["-O3", "-march=native", "-mavx2"]
-if platform.machine().startswith('arm'):
+    print("x86_64 detected")
+elif platform.machine().startswith('arm'):
     extra_compile_args = ["-O3", "-march=armv8-a+simd"]
+    print("ARM detected")
 else:
     extra_compile_args = ["-O3", "-march=native"]
+
+print(f"Extra compile args: {extra_compile_args}")
+sleep(2)
 
 ffibuilder.set_source(
     "pycrgba_cffi",
@@ -51,4 +58,3 @@ if __name__ == "__main__":
 
     remove("pycrgba_cffi.c")
     shutil.rmtree("Release", ignore_errors=True)
-    shutil.rmtree("c_src", ignore_errors=True)

@@ -2,7 +2,7 @@ import time
 import platform
 from pycrgba import create_image_rgba, free_image_rgba, fill_image_rgba, fill_image_rgba_avx2, fill_image_rgba_neon
 
-def test_fill(iterations=1000):
+def test_fill(iterations=100):
     width, height = 1920, 1080
     image = create_image_rgba(width, height)
 

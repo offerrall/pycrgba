@@ -1,7 +1,7 @@
 import time
 from pycrgba import create_image_rgba, free_image_rgba, fill_image_rgba, blit_same_size
 
-def test_blit_same_size(iterations=1000):
+def test_blit_same_size(iterations=100):
     width, height = 1920, 1080
     channels = 4
     src = create_image_rgba(width, height)

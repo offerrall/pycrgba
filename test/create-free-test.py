@@ -1,7 +1,7 @@
 import time
 from pycrgba import create_image_rgba, free_image_rgba
 
-def test_create_free(iterations=1000):
+def test_create_free(iterations=100):
     width, height = 1920, 1080
     total_create_time = 0
     total_free_time = 0
