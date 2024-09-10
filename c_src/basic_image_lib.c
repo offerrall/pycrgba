@@ -325,6 +325,55 @@ void blit_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
 }
 #endif
 
+#if defined(__ARM_NEON)
+void blit_neon(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
+               uint8_t* src_image, uint32_t src_width, uint32_t src_height,
+               int32_t start_x, int32_t start_y) {
+    if (dest_image == NULL || src_image == NULL) return;
+
+    int32_t copy_start_x = (start_x < 0) ? 0 : start_x;
+    int32_t copy_start_y = (start_y < 0) ? 0 : start_y;
+    int32_t copy_end_x = (start_x + (int32_t)src_width > (int32_t)dest_width) ? dest_width : (start_x + src_width);
+    int32_t copy_end_y = (start_y + (int32_t)src_height > (int32_t)dest_height) ? dest_height : (start_y + src_height);
+
+    if (copy_start_x >= copy_end_x || copy_start_y >= copy_end_y) return;
+
+    uint32_t copy_width = copy_end_x - copy_start_x;
+    uint32_t copy_height = copy_end_y - copy_start_y;
+    int32_t src_offset_x = (start_x < 0) ? -start_x : 0;
+    int32_t src_offset_y = (start_y < 0) ? -start_y : 0;
+
+    uint32_t dest_stride = dest_width * 4;
+    uint32_t src_stride = src_width * 4;
+
+    uint8_t* dest_ptr = dest_image + (copy_start_y * dest_width + copy_start_x) * 4;
+    uint8_t* src_ptr = src_image + (src_offset_y * src_width + src_offset_x) * 4;
+
+    uint32_t neon_blocks = copy_width / 4;
+    uint32_t remainder = copy_width % 4;
+
+    for (uint32_t y = 0; y < copy_height; y++) {
+        uint8_t* dest_row = dest_ptr + y * dest_stride;
+        uint8_t* src_row = src_ptr + y * src_stride;
+
+        for (uint32_t x = 0; x < neon_blocks; x++) {
+            uint32x4_t pixels = vld1q_u32((uint32_t*)(src_row + x * 16));
+            vst1q_u32((uint32_t*)(dest_row + x * 16), pixels);
+        }
+
+        if (remainder > 0) {
+            memcpy(dest_row + neon_blocks * 16, src_row + neon_blocks * 16, remainder * 4);
+        }
+    }
+}
+#else
+void blit_neon(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height,
+               uint8_t* src_image, uint32_t src_width, uint32_t src_height,
+               int32_t start_x, int32_t start_y) {
+    blit(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y);
+}
+#endif
+
 void blit_same_size(uint8_t* src, uint8_t* dst, uint32_t width, uint32_t height, uint32_t channels) {
     size_t total_bytes = width * height * channels;
     memcpy(dst, src, total_bytes);

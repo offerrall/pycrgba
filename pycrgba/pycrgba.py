@@ -31,6 +31,10 @@ def blit(dest_image: Image, dest_width: int, dest_height: int, src_image: Image,
     """Blits an image to another image with different sizes."""
     _ffi.lib.blit(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
 
+def blit_neon(dest_image: Image, dest_width: int, dest_height: int, src_image: Image, src_width: int, src_height: int, start_x: int, start_y: int):
+    """Blits an image to another image with different sizes using NEON optimizations."""
+    _ffi.lib.blit_neon(dest_image, dest_width, dest_height, src_image, src_width, src_height, start_x, start_y)
+
 def blit_same_size(src: Image, dst: Image, width: int, height: int, channels: int):
     """Blits an image of the same size."""
     _ffi.lib.blit_same_size(src, dst, width, height, channels)
