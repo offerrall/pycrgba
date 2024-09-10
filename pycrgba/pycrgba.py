@@ -46,3 +46,7 @@ def nearest_neighbor_resize(src: Image, dst: Image, src_width: int, src_height: 
 def nearest_neighbor_resize_avx2(src: Image, dst: Image, src_width: int, src_height: int, dst_width: int, dst_height: int):
     """Resizes an image using nearest neighbor interpolation with AVX2."""
     _ffi.lib.nearest_neighbor_resize_avx2(src, dst, src_width, src_height, dst_width, dst_height)
+
+def nearest_neighbor_resize_neon(src: Image, dst: Image, src_width: int, src_height: int, dst_width: int, dst_height: int):
+    """Resizes an image using nearest neighbor interpolation with NEON optimizations."""
+    _ffi.lib.nearest_neighbor_resize_neon(src, dst, src_width, src_height, dst_width, dst_height)

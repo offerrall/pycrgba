@@ -3,8 +3,10 @@ from pycrgba import (
     create_image_rgba,
     free_image_rgba,
     nearest_neighbor_resize,
-    nearest_neighbor_resize_avx2
+    nearest_neighbor_resize_avx2,
+    nearest_neighbor_resize_neon
 )
+import platform
 
 def test_resize_fps(resize_func, src_image, dst_image, src_width, src_height, dst_width, dst_height, num_frames=100):
     start_time = time.time()
@@ -30,10 +32,13 @@ def main():
 
     resize_functions = [
         ("Nearest Neighbor", nearest_neighbor_resize),
-        ("Nearest Neighbor AVX2", nearest_neighbor_resize_avx2)
+        ("Nearest Neighbor AVX2", nearest_neighbor_resize_avx2),
+        ("Nearest Neighbor NEON", nearest_neighbor_resize_neon)
     ]
 
     print(f"Testing resize performance from {src_width}x{src_height} to {dst_width}x{dst_height}:")
+    print(f"Platform: {platform.machine()}")
+    
     for name, func in resize_functions:
         fps = test_resize_fps(func, src_image, dst_image, src_width, src_height, dst_width, dst_height)
         print(f"{name}: {fps:.2f} FPS")

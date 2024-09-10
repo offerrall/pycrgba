@@ -17,12 +17,15 @@ ffibuilder.cdef("""
     void blit_same_size(uint8_t* src, uint8_t* dst, uint32_t width, uint32_t height, uint32_t channels);
     void nearest_neighbor_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height);
     void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height);
+    void nearest_neighbor_resize_neon(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height);
 """)
 
 if platform.system() == "Windows":
     extra_compile_args = ["/O2", "/arch:AVX2"]
 elif platform.machine() == "x86_64":
     extra_compile_args = ["-O3", "-march=native", "-mavx2"]
+if platform.machine().startswith('arm'):
+    extra_compile_args = ["-O3", "-march=armv8-a+simd"]
 else:
     extra_compile_args = ["-O3", "-march=native"]
 

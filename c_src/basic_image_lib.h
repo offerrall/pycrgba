@@ -16,6 +16,9 @@
 
 #define ALIGNMENT 32
 
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
 
 #if defined(__AVX2__)
 #define HAS_AVX2 1
@@ -34,5 +37,6 @@ void blit_avx2(uint8_t* dest_image, uint32_t dest_width, uint32_t dest_height, u
 void blit_same_size(uint8_t* src, uint8_t* dst, uint32_t width, uint32_t height, uint32_t channels);
 void nearest_neighbor_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height);
 void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height);
+void nearest_neighbor_resize_neon(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height);
 
 #endif

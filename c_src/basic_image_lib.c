@@ -19,6 +19,10 @@
 #define HAS_AVX2 0
 #endif
 
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
+
 uint8_t* create_image_rgba(uint32_t width, uint32_t height) {
     size_t size = width * height * 4;
     uint8_t* image_data;
@@ -346,6 +350,41 @@ void nearest_neighbor_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uin
         }
     }
 }
+
+#if defined(__ARM_NEON)
+void nearest_neighbor_resize_neon(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
+    if (src == NULL || dst == NULL) {
+        return;
+    }
+
+    float x_ratio = (float)src_width / dst_width;
+    float y_ratio = (float)src_height / dst_height;
+    uint32_t channels = 4;
+
+    for (uint32_t y = 0; y < dst_height; y++) {
+        uint32_t nearest_y = (uint32_t)(y * y_ratio) * src_width * channels;
+        uint8_t* dst_row = dst + (y * dst_width * channels);
+
+        for (uint32_t x = 0; x < dst_width - 3; x += 4) {
+            uint32_t nearest_x = (uint32_t)(x * x_ratio) * channels;
+            uint8_t* src_pixel = src + nearest_y + nearest_x;
+
+            uint32x4_t pixel = vld1q_u32((uint32_t*)src_pixel);
+            vst1q_u32((uint32_t*)(dst_row + x * channels), pixel);
+        }
+
+        for (uint32_t x = dst_width - (dst_width % 4); x < dst_width; x++) {
+            uint32_t nearest_x = (uint32_t)(x * x_ratio) * channels;
+            uint8_t* src_pixel = src + nearest_y + nearest_x;
+            memcpy(&dst_row[x * channels], src_pixel, channels);
+        }
+    }
+}
+#else
+void nearest_neighbor_resize_neon(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
+    nearest_neighbor_resize(src, dst, src_width, src_height, dst_width, dst_height);
+}
+#endif
 
 #if HAS_AVX2
 void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
