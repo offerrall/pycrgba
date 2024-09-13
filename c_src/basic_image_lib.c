@@ -589,13 +589,66 @@ void nearest_neighbor_resize_neon(uint8_t* src, uint8_t* dst, uint32_t src_width
     nearest_neighbor_resize(src, dst, src_width, src_height, dst_width, dst_height);
 }
 #endif
-
 #if HAS_AVX2
-void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
-    nearest_neighbor_resize(src, dst, src_width, src_height, dst_width, dst_height);
+#include <immintrin.h>
+
+void nearest_neighbor_resize_avx2(uint8_t* __restrict src, uint8_t* __restrict dst,
+                                  uint32_t src_width, uint32_t src_height,
+                                  uint32_t dst_width, uint32_t dst_height) {
+    if (!src || !dst || src_width == 0 || src_height == 0 ||
+        dst_width == 0 || dst_height == 0) {
+        return;
+    }
+
+    const uint32_t channels = 4; // Asumiendo imagen RGBA
+    uint64_t x_ratio = ((uint64_t)src_width << 16) / dst_width;
+    uint64_t y_ratio = ((uint64_t)src_height << 16) / dst_height;
+
+    for (uint32_t y = 0; y < dst_height; y++) {
+        uint32_t src_y = (y * y_ratio) >> 16;
+        uint8_t* dst_row = dst + y * dst_width * channels;
+        uint8_t* src_row = src + src_y * src_width * channels;
+
+        uint32_t x = 0;
+        for (; x + 7 < dst_width; x += 8) {
+            // Calcular los índices fuente correctos para cada píxel de destino
+            uint32_t src_x0 = (x * x_ratio) >> 16;
+            uint32_t src_x1 = ((x + 1) * x_ratio) >> 16;
+            uint32_t src_x2 = ((x + 2) * x_ratio) >> 16;
+            uint32_t src_x3 = ((x + 3) * x_ratio) >> 16;
+            uint32_t src_x4 = ((x + 4) * x_ratio) >> 16;
+            uint32_t src_x5 = ((x + 5) * x_ratio) >> 16;
+            uint32_t src_x6 = ((x + 6) * x_ratio) >> 16;
+            uint32_t src_x7 = ((x + 7) * x_ratio) >> 16;
+
+            // Cargar los píxeles correctos para estos índices de origen
+            __m256i pixels = _mm256_set_epi32(
+                *(uint32_t*)(src_row + src_x7 * channels),
+                *(uint32_t*)(src_row + src_x6 * channels),
+                *(uint32_t*)(src_row + src_x5 * channels),
+                *(uint32_t*)(src_row + src_x4 * channels),
+                *(uint32_t*)(src_row + src_x3 * channels),
+                *(uint32_t*)(src_row + src_x2 * channels),
+                *(uint32_t*)(src_row + src_x1 * channels),
+                *(uint32_t*)(src_row + src_x0 * channels)
+            );
+
+            // Almacenar los píxeles en el destino
+            _mm256_storeu_si256((__m256i*)(dst_row + x * channels), pixels);
+        }
+
+        // Procesar píxeles restantes
+        for (; x < dst_width; x++) {
+            uint32_t src_x = (x * x_ratio) >> 16;
+            *(uint32_t*)(dst_row + x * channels) = *(uint32_t*)(src_row + src_x * channels);
+        }
+    }
 }
 #else
-void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
+void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst,
+                                  uint32_t src_width, uint32_t src_height,
+                                  uint32_t dst_width, uint32_t dst_height) {
     nearest_neighbor_resize(src, dst, src_width, src_height, dst_width, dst_height);
 }
 #endif
+
