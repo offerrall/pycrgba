@@ -18,7 +18,7 @@ def test_resize_fps(resize_func, src_image, dst_image, src_width, src_height, ds
 
 def main():
     src_width, src_height = 1920, 1080
-    dst_width, dst_height = 1920, 1080
+    dst_width, dst_height = 480, 320
     src_image = create_image_rgba(src_width, src_height)
     dst_image = create_image_rgba(dst_width, dst_height)
 

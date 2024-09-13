@@ -513,27 +513,48 @@ void blit_same_size(uint8_t* src, uint8_t* dst, uint32_t width, uint32_t height,
     memcpy(dst, src, total_bytes);
 }
 
-void nearest_neighbor_resize(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
-    if (src == NULL || dst == NULL) {
+void nearest_neighbor_resize(uint8_t* __restrict src, uint8_t* __restrict dst,
+                             uint32_t src_width, uint32_t src_height,
+                             uint32_t dst_width, uint32_t dst_height) {
+    if (!src || !dst || src_width == 0 || src_height == 0 ||
+        dst_width == 0 || dst_height == 0) {
         return;
     }
 
-    float x_ratio = (float)src_width / dst_width;
-    float y_ratio = (float)src_height / dst_height;
-    uint32_t channels = 4;
+    const uint32_t channels = 4; // Suponiendo imagen RGBA
+    uint32_t x_ratio = (uint32_t)((src_width << 16) / dst_width) + 1;
+    uint32_t y_ratio = (uint32_t)((src_height << 16) / dst_height) + 1;
 
     for (uint32_t y = 0; y < dst_height; y++) {
-        uint32_t nearest_y = (uint32_t)(y * y_ratio) * src_width * channels;
-        uint8_t* dst_row = dst + (y * dst_width * channels);
+        uint32_t src_y = (y * y_ratio) >> 16;
+        uint8_t* dst_row = dst + y * dst_width * channels;
+        uint8_t* src_row = src + src_y * src_width * channels;
 
-        for (uint32_t x = 0; x < dst_width; x++) {
-            uint32_t nearest_x = (uint32_t)(x * x_ratio) * channels;
-            uint8_t* src_pixel = src + nearest_y + nearest_x;
-            memcpy(&dst_row[x * channels], src_pixel, channels);
+        uint32_t x = 0;
+        for (; x + 1 < dst_width; x += 2) {
+            uint32_t src_x0 = (x * x_ratio) >> 16;
+            uint32_t src_x1 = ((x + 1) * x_ratio) >> 16;
+
+            uint8_t* dst_pixel0 = dst_row + x * channels;
+            uint8_t* dst_pixel1 = dst_row + (x + 1) * channels;
+
+            uint8_t* src_pixel0 = src_row + src_x0 * channels;
+            uint8_t* src_pixel1 = src_row + src_x1 * channels;
+
+            // Copiar píxeles completos (RGBA)
+            *((uint32_t*)dst_pixel0) = *((uint32_t*)src_pixel0);
+            *((uint32_t*)dst_pixel1) = *((uint32_t*)src_pixel1);
+        }
+
+        // Procesar píxel restante si el ancho es impar
+        if (x < dst_width) {
+            uint32_t src_x = (x * x_ratio) >> 16;
+            uint8_t* dst_pixel = dst_row + x * channels;
+            uint8_t* src_pixel = src_row + src_x * channels;
+            *((uint32_t*)dst_pixel) = *((uint32_t*)src_pixel);
         }
     }
 }
-
 #if defined(__ARM_NEON)
 void nearest_neighbor_resize_neon(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
     if (src == NULL || dst == NULL) {
@@ -570,52 +591,9 @@ void nearest_neighbor_resize_neon(uint8_t* src, uint8_t* dst, uint32_t src_width
 #endif
 
 #if HAS_AVX2
-#include <immintrin.h>
-#include <stdint.h>
-
 void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
-    if (src == NULL || dst == NULL || src_width == 0 || src_height == 0 || dst_width == 0 || dst_height == 0) {
-        return;
-    }
-
-    float x_ratio = (float)(src_width - 1) / (float)dst_width;
-    float y_ratio = (float)(src_height - 1) / (float)dst_height;
-    uint32_t channels = 4;
-
-    __m256 avx_x_ratio = _mm256_set1_ps(x_ratio);
-    __m256i avx_channels = _mm256_set1_epi32(channels);
-    __m256i avx_src_width = _mm256_set1_epi32(src_width * channels);
-
-    for (uint32_t y = 0; y < dst_height; y++) {
-        uint32_t src_y = (uint32_t)(y * y_ratio) * src_width * channels;
-        uint8_t* dst_row = dst + (y * dst_width * channels);
-
-        for (uint32_t x = 0; x < dst_width; x += 8) {
-            __m256i avx_x = _mm256_setr_epi32(x, x+1, x+2, x+3, x+4, x+5, x+6, x+7);
-            __m256 avx_src_x_f = _mm256_mul_ps(_mm256_cvtepi32_ps(avx_x), avx_x_ratio);
-            __m256i avx_src_x = _mm256_cvttps_epi32(avx_src_x_f);
-            
-            avx_src_x = _mm256_mullo_epi32(avx_src_x, avx_channels);
-            avx_src_x = _mm256_add_epi32(avx_src_x, _mm256_set1_epi32(src_y));
-
-            // Ensure we don't access out of bounds
-            avx_src_x = _mm256_min_epi32(avx_src_x, _mm256_sub_epi32(avx_src_width, _mm256_set1_epi32(4)));
-
-            __m256i pixels = _mm256_i32gather_epi32((const int*)src, avx_src_x, 4);
-            _mm256_storeu_si256((__m256i*)(dst_row + x * channels), pixels);
-        }
-
-        // Handle remaining pixels
-        for (uint32_t x = (dst_width / 8) * 8; x < dst_width; x++) {
-            uint32_t src_x = (uint32_t)(x * x_ratio) * channels;
-            src_x = (src_x < (src_width - 1) * channels) ? src_x : (src_width - 1) * channels;
-            for (uint32_t c = 0; c < channels; c++) {
-                dst_row[x * channels + c] = src[src_y + src_x + c];
-            }
-        }
-    }
+    nearest_neighbor_resize(src, dst, src_width, src_height, dst_width, dst_height);
 }
-
 #else
 void nearest_neighbor_resize_avx2(uint8_t* src, uint8_t* dst, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height) {
     nearest_neighbor_resize(src, dst, src_width, src_height, dst_width, dst_height);
