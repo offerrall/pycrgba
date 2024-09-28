@@ -68,7 +68,7 @@ def run_fill_test(iterations=100):
 
 def run_resize_test(iterations=100):
     src_width, src_height = 1920, 1080
-    dst_width, dst_height = 960, 540
+    dst_width, dst_height = 1920, 1080
     src_image = create_image_rgba(src_width, src_height)
     dst_image = create_image_rgba(dst_width, dst_height)
 
